@@ -38,8 +38,10 @@ git_branch=$(git rev-parse --abbrev-ref HEAD)
 
 # Prepare the text to append
 append_text=""
-if echo "$git_branch" | grep -Eq '^GL-[0-9]+-'; then
-  epic_id=$(echo "$git_branch" | sed -n 's/^GL-\([0-9]\+\)-.*/\1/p')
+# Case-insensitive match for GL/gl/Gl/gL followed by alphanumeric ID
+if echo "$git_branch" | grep -Eiq '^[Gg][Ll]-[a-zA-Z0-9]+-'; then
+  # Extract the ID (alphanumeric characters after GL- and before the next -)
+  epic_id=$(echo "$git_branch" | sed -n 's/^[Gg][Ll]-\([a-zA-Z0-9]\+\)-.*/\1/p')
   if [ -n "$epic_id" ]; then
     append_text="- Epic GL-$epic_id"
   fi

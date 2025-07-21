@@ -64,7 +64,9 @@ if ($Help) {
     Write-Host ""
     Write-Host "BRANCH NAMING CONVENTION:" -ForegroundColor Yellow
     Write-Host "  GL-123-feature-name    -> Commit: 'Your message - Epic GL-123'" -ForegroundColor White
-    Write-Host "  GL-456-bug-fix         -> Commit: 'Your message - Epic GL-456'" -ForegroundColor White
+    Write-Host "  gl-456-bug-fix         -> Commit: 'Your message - Epic GL-456'" -ForegroundColor White
+    Write-Host "  Gl-aaa-feature         -> Commit: 'Your message - Epic GL-aaa'" -ForegroundColor White
+    Write-Host "  gL-1a1b-test           -> Commit: 'Your message - Epic GL-1a1b'" -ForegroundColor White
     Write-Host "  main                   -> Commit: 'Your message' (no epic added)" -ForegroundColor White
     Write-Host ""
     Read-Host "Press Enter to continue"
@@ -237,7 +239,7 @@ if ($Verbose) {
     Write-Host "Hook File: $hookPath" -ForegroundColor White
     Write-Host ""
     Write-Host "Hook will automatically:" -ForegroundColor Yellow
-    Write-Host "  - Append epic IDs to commit messages for GL-{number}- branches" -ForegroundColor White
+    Write-Host "  - Append epic IDs to commit messages for GL-{id}- branches (case-insensitive)" -ForegroundColor White
     Write-Host "  - Remove Git's default help text" -ForegroundColor White
     Write-Host "  - Work with git commit, git commit -m, and interactive commits" -ForegroundColor White
     Write-Host ""
@@ -245,13 +247,15 @@ if ($Verbose) {
 
 Write-Host "Successfully created prepare-commit-msg hook in: $hooksDir" -ForegroundColor Green
 Write-Host ""
-Write-Host "Hook will automatically append epic IDs to commit messages for branches named GL-{number}-feature-name" -ForegroundColor White
+Write-Host "Hook will automatically append epic IDs to commit messages for branches named GL-{id}-feature-name" -ForegroundColor White
 Write-Host ""
 Write-Host "TESTING:" -ForegroundColor Yellow
 Write-Host "  1. Create a branch: git checkout -b GL-123-test-feature" -ForegroundColor White
 Write-Host "  2. Make a commit: git commit -m 'Add new feature'" -ForegroundColor White
 Write-Host "  3. Check result: git log --oneline -1" -ForegroundColor White
 Write-Host "  4. Expected: 'Add new feature - Epic GL-123'" -ForegroundColor White
+Write-Host "  5. Test case-insensitive: git checkout -b gl-456-test (outputs GL-456)" -ForegroundColor White
+Write-Host "  6. Test alphanumeric: git checkout -b Gl-aaa-feature (outputs GL-aaa)" -ForegroundColor White
 Write-Host ""
 Write-Host "Script completed successfully!" -ForegroundColor Green
 Read-Host "Press Enter to continue" 

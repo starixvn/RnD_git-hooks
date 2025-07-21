@@ -46,12 +46,14 @@ This tool automatically:
 
 ## 🏷️ Branch Naming Convention
 
-The hook automatically detects branches following the pattern `GL-{number}-feature-name` and appends the epic ID to commit messages.
+The hook automatically detects branches following the pattern `GL-{id}-feature-name` and appends the epic ID to commit messages. The prefix is case-insensitive (accepts GL, gl, Gl, gL) but always outputs "GL" in uppercase. Supports alphanumeric IDs.
 
 | Branch Name           | Commit Message           | Result                                   |
 | --------------------- | ------------------------ | ---------------------------------------- |
 | `GL-123-feature-name` | `"Add new feature"`      | `"Add new feature - Epic GL-123"`        |
-| `GL-456-bug-fix`      | `"Fix critical bug"`     | `"Fix critical bug - Epic GL-456"`       |
+| `gl-456-bug-fix`      | `"Fix critical bug"`     | `"Fix critical bug - Epic GL-456"`       |
+| `Gl-aaa-feature`      | `"Add new feature"`      | `"Add new feature - Epic GL-aaa"`        |
+| `gL-1a1b-test`        | `"Test feature"`         | `"Test feature - Epic GL-1a1b"`          |
 | `main`                | `"Update documentation"` | `"Update documentation"` (no epic added) |
 | `develop`             | `"Merge feature branch"` | `"Merge feature branch"` (no epic added) |
 
@@ -72,7 +74,23 @@ git commit -m "Add test file"
 git log --oneline -1
 # Expected: "Add test file - Epic GL-123"
 
-# 4. Test on main branch (should not add epic)
+# 4. Test case-insensitive branch naming
+git checkout -b gl-456-bug-fix
+echo "bug fix" > fix.txt
+git add fix.txt
+git commit -m "Fix critical bug"
+git log --oneline -1
+# Expected: "Fix critical bug - Epic GL-456"
+
+# 5. Test alphanumeric IDs
+git checkout -b Gl-aaa-feature
+echo "feature" > feature.txt
+git add feature.txt
+git commit -m "Add new feature"
+git log --oneline -1
+# Expected: "Add new feature - Epic GL-aaa"
+
+# 6. Test on main branch (should not add epic)
 git checkout main
 echo "another test" > test2.txt
 git add test2.txt
@@ -179,8 +197,10 @@ git_branch=$(git rev-parse --abbrev-ref HEAD)
 
 # Prepare the text to append
 append_text=""
-if echo "$git_branch" | grep -Eq '^GL-[0-9]+-'; then
-  epic_id=$(echo "$git_branch" | sed -n 's/^GL-\([0-9]\+\)-.*/\1/p')
+# Case-insensitive match for GL/gl/Gl/gL followed by alphanumeric ID
+if echo "$git_branch" | grep -Eiq '^[Gg][Ll]-[a-zA-Z0-9]+-'; then
+  # Extract the ID (alphanumeric characters after GL- and before the next -)
+  epic_id=$(echo "$git_branch" | sed -n 's/^[Gg][Ll]-\([a-zA-Z0-9]\+\)-.*/\1/p')
   if [ -n "$epic_id" ]; then
     append_text="- Epic GL-$epic_id"
   fi
@@ -248,7 +268,7 @@ fi
 **Solutions**:
 
 1. Verify the hook is executable: `ls -la .git/hooks/prepare-commit-msg`
-2. Check branch naming follows the pattern: `GL-{number}-feature-name`
+2. Check branch naming follows the pattern: `GL-{id}-feature-name` (case-insensitive, alphanumeric IDs)
 3. Test with verbose mode to see detailed output
 4. Check Git version compatibility (works with Git 1.7+)
 
