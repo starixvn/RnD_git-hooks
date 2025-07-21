@@ -1,93 +1,327 @@
-# git-hooks
+# Git Prepare-Commit-Msg Hook Generator
 
+Automatically installs a Git `prepare-commit-msg` hook that appends epic IDs to commit messages based on branch naming conventions.
 
+## 🎯 What It Does
 
-## Getting started
+This tool automatically:
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- **Finds your Git repository** from any subdirectory or custom path
+- **Searches recursively** through directories to locate `.git` folders
+- **Creates the hooks directory** if it doesn't exist
+- **Installs a prepare-commit-msg hook** that:
+  - Appends `- Epic GL-{id}` to commit messages from branches named `GL-{id}-feature-name`
+  - Removes Git's default help text from commit messages
+  - Works with `git commit`, `git commit -m`, and interactive commits
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## 📁 Files
 
-## Add your files
+- `create_prepare_commit_mgs.ps1` - PowerShell script (with custom path support)
+- `README.md` - This guide
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## 🚀 Quick Start
+
+```powershell
+# From any directory in your Git repository
+.\create_prepare_commit_mgs.ps1
+
+# Search from custom path
+.\create_prepare_commit_mgs.ps1 -Path "C:\projects\my-project"
+
+# With options
+.\create_prepare_commit_mgs.ps1 -Help
+.\create_prepare_commit_mgs.ps1 -Verbose
+.\create_prepare_commit_mgs.ps1 -Force
+```
+
+## 📋 Command Line Options
+
+| Option      | PowerShell | Description                                            |
+| ----------- | ---------- | ------------------------------------------------------ |
+| Help        | `-Help`    | Show detailed help and usage information               |
+| Verbose     | `-Verbose` | Show detailed output during installation               |
+| Force       | `-Force`   | Overwrite existing hook without prompting              |
+| Custom Path | `-Path`    | Specify custom starting path for Git repository search |
+
+## 🏷️ Branch Naming Convention
+
+The hook automatically detects branches following the pattern `GL-{number}-feature-name` and appends the epic ID to commit messages.
+
+| Branch Name           | Commit Message           | Result                                   |
+| --------------------- | ------------------------ | ---------------------------------------- |
+| `GL-123-feature-name` | `"Add new feature"`      | `"Add new feature - Epic GL-123"`        |
+| `GL-456-bug-fix`      | `"Fix critical bug"`     | `"Fix critical bug - Epic GL-456"`       |
+| `main`                | `"Update documentation"` | `"Update documentation"` (no epic added) |
+| `develop`             | `"Merge feature branch"` | `"Merge feature branch"` (no epic added) |
+
+## 🧪 Testing the Hook
+
+After installation, test the hook with these commands:
+
+```bash
+# 1. Create a test branch with epic ID
+git checkout -b GL-123-test-feature
+
+# 2. Make some changes and commit
+echo "test" > test.txt
+git add test.txt
+git commit -m "Add test file"
+
+# 3. Check the commit message
+git log --oneline -1
+# Expected: "Add test file - Epic GL-123"
+
+# 4. Test on main branch (should not add epic)
+git checkout main
+echo "another test" > test2.txt
+git add test2.txt
+git commit -m "Add another test file"
+git log --oneline -1
+# Expected: "Add another test file" (no epic added)
+```
+
+## 📖 Detailed Usage Examples
+
+### Basic Installation
+
+```powershell
+# Navigate to your project
+cd C:\projects\my-project
+
+# Run the script from any subdirectory
+.\create_prepare_commit_mgs.ps1
+```
+
+### From Subdirectories
+
+```powershell
+# Works from any subdirectory within the Git repository
+cd C:\projects\my-project\src\components\ui
+..\..\..\..\scripts\create_prepare_commit_mgs.ps1
+```
+
+### Custom Path Search
+
+```powershell
+# Search from a specific directory
+.\create_prepare_commit_mgs.ps1 -Path "C:\projects"
+
+# Search from a specific project
+.\create_prepare_commit_mgs.ps1 -Path "C:\projects\my-project"
+
+# Search with verbose output
+.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Verbose
+
+# Search from custom path and force overwrite
+.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Force
+
+# Search from custom path with all options
+.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Verbose -Force
+```
+
+### Verbose Installation
+
+```powershell
+# See detailed output during installation
+.\create_prepare_commit_mgs.ps1 -Verbose
+
+# See detailed output with custom path
+.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Verbose
+```
+
+### Force Overwrite
+
+```powershell
+# Overwrite existing hook without prompting
+.\create_prepare_commit_mgs.ps1 -Force
+
+# Overwrite existing hook from custom path
+.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Force
+```
+
+## 🔧 How It Works
+
+### 1. Git Repository Detection
+
+The script automatically finds your `.git` folder by:
+
+- **Current directory search**: Starting from current or specified path
+- **Recursive subdirectory search**: Searching through all subdirectories
+- **Parent directory search**: Searching up the directory tree if needed
+- **Path validation**: Verifying custom paths exist before searching
+
+### 2. Hook Installation
+
+- Creates the `hooks` directory if it doesn't exist
+- Generates the `prepare-commit-msg` hook script
+- Sets appropriate file permissions
+- Provides clear feedback on success or failure
+
+### 3. Hook Functionality
+
+The installed hook:
+
+- Extracts the current branch name using `git rev-parse --abbrev-ref HEAD`
+- Checks if the branch matches the pattern `GL-{number}-`
+- Extracts the epic ID using regex
+- Appends `- Epic GL-{id}` to the first line of the commit message
+- Removes Git's default help text using Perl
+
+## 📝 Generated Hook Content
+
+The script generates a `prepare-commit-msg` hook with this functionality:
+
+```bash
+#!/bin/sh
+# Get the current branch name
+git_branch=$(git rev-parse --abbrev-ref HEAD)
+
+# Prepare the text to append
+append_text=""
+if echo "$git_branch" | grep -Eq '^GL-[0-9]+-'; then
+  epic_id=$(echo "$git_branch" | sed -n 's/^GL-\([0-9]\+\)-.*/\1/p')
+  if [ -n "$epic_id" ]; then
+    append_text="- Epic GL-$epic_id"
+  fi
+fi
+
+if [ -n "$append_text" ]; then
+  # Append to the end of the first line (commit title)
+  sed -i "1s/$/ $append_text/" "$COMMIT_MSG_FILE"
+fi
+
+# Remove Git's default help text
+/usr/bin/perl -i.bak -ne 'print unless(m/^. Please enter the commit message/..m/^#$/)' "$COMMIT_MSG_FILE"
+```
+
+## 🚨 Troubleshooting
+
+### "No .git folder found" Error
+
+**Problem**: Script can't find your Git repository.
+
+**Solutions**:
+
+1. Make sure you're running the script from within a Git repository
+2. Check that the `.git` folder exists in your project root
+3. Try running `git status` to verify you're in a Git repository
+4. Use `-Path` parameter to specify a custom search location
+5. Use `-Verbose` to see detailed search information
+
+### "Specified path does not exist" Error
+
+**Problem**: Custom path provided with `-Path` doesn't exist.
+
+**Solutions**:
+
+1. Verify the path exists and is accessible
+2. Check for typos in the path
+3. Use absolute paths for better reliability
+4. Ensure you have read permissions for the specified directory
+
+### "Hook already exists" Warning
+
+**Problem**: A `prepare-commit-msg` hook already exists.
+
+**Solutions**:
+
+1. Use `-Force` to overwrite
+2. Manually backup and remove the existing hook first
+3. Review the existing hook to avoid conflicts
+
+### Hook Not Working
+
+**Problem**: Epic IDs are not being appended to commit messages.
+
+**Solutions**:
+
+1. Verify the hook is executable: `ls -la .git/hooks/prepare-commit-msg`
+2. Check branch naming follows the pattern: `GL-{number}-feature-name`
+3. Test with verbose mode to see detailed output
+4. Check Git version compatibility (works with Git 1.7+)
+
+## 🔄 Updating the Hook
+
+To update an existing hook:
+
+```powershell
+# Basic update
+.\create_prepare_commit_mgs.ps1 -Force
+
+# Update with custom path
+.\create_prepare_commit_mgs.ps1 -Path "C:\projects\my-project" -Force
+```
+
+## 🗂️ File Locations
+
+After installation, the hook will be located at:
 
 ```
-cd existing_repo
-git remote add origin https://git3.nexdev.net/l1/tools/git-hooks.git
-git branch -M main
-git push -uf origin main
+{your-project}/.git/hooks/prepare-commit-msg
 ```
 
-## Integrate with your tools
+## 📋 Requirements
 
-- [ ] [Set up project integrations](https://git3.nexdev.net/l1/tools/git-hooks/-/settings/integrations)
+- **Git**: Version 1.7 or higher
+- **PowerShell**: PowerShell 3.0 or higher
+- **Windows**: Windows 7 or higher
+- **Unix-like systems**: Compatible with WSL, Git Bash, etc.
 
-## Collaborate with your team
+## 🆕 Features
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+### Custom Path Support
 
-## Test and Deploy
+The PowerShell script supports searching from custom paths:
 
-Use the built-in continuous integration in GitLab.
+```powershell
+# Search from any directory without changing current location
+.\create_prepare_commit_mgs.ps1 -Path "D:\git3\game-clients\wild-west-client"
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+# Search with verbose output
+.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Verbose
 
-***
+# Search and force overwrite
+.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Force
+```
 
-# Editing this README
+**Benefits**:
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+- ✅ **Flexible**: Search from any directory without changing current location
+- ✅ **Recursive**: Searches through all subdirectories from the specified path
+- ✅ **Error Handling**: Validates custom paths and provides clear error messages
+- ✅ **Verbose Support**: Shows detailed search information when using custom paths
 
-## Suggestions for a good README
+## 🤝 Contributing
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+To contribute to this project:
 
-## Name
-Choose a self-explaining name for your project.
+1. Fork the repository
+2. Create a feature branch: `git checkout -b GL-123-new-feature`
+3. Make your changes
+4. Commit with a descriptive message: `git commit -m "Add new feature - Epic GL-123"`
+5. Push to your fork: `git push origin GL-123-new-feature`
+6. Create a pull request
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## 📄 License
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+This project is open source and available under the [MIT License](LICENSE).
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+## 🆘 Support
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+If you encounter issues:
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+1. Check the troubleshooting section above
+2. Run the script with verbose mode for detailed output
+3. Verify your Git repository structure
+4. Check that your branch naming follows the convention
+5. Try using the `-Path` parameter for custom search locations
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+## 🔗 Related Tools
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+- [Git Hooks Documentation](https://git-scm.com/docs/githooks)
+- [Prepare-Commit-Msg Hook Guide](https://git-scm.com/docs/githooks#_prepare_commit_msg)
+- [Git Branch Naming Conventions](https://nvie.com/posts/a-successful-git-branching-model/)
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+---
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+**Happy committing! 🚀**
