@@ -17,6 +17,7 @@ This tool automatically:
 ## 📁 Files
 
 - `create_prepare_commit_mgs.ps1` - PowerShell script (with custom path support)
+- `prepare-commit-msg` - The Git hook script that gets installed
 - `README.md` - This guide
 
 ## 🚀 Quick Start
@@ -153,7 +154,7 @@ The script automatically finds your `.git` folder by:
 ### 2. Hook Installation
 
 - Creates the `hooks` directory if it doesn't exist
-- Generates the `prepare-commit-msg` hook script
+- Copies the `prepare-commit-msg` hook script from the script directory
 - Sets appropriate file permissions
 - Provides clear feedback on success or failure
 
@@ -167,9 +168,9 @@ The installed hook:
 - Appends `- Epic GL-{id}` to the first line of the commit message
 - Removes Git's default help text using Perl
 
-## 📝 Generated Hook Content
+## 📝 Hook Content
 
-The script generates a `prepare-commit-msg` hook with this functionality:
+The `prepare-commit-msg` file contains this functionality:
 
 ```bash
 #!/bin/sh
@@ -195,6 +196,17 @@ fi
 ```
 
 ## 🚨 Troubleshooting
+
+### "prepare-commit-msg file not found" Error
+
+**Problem**: Script can't find the `prepare-commit-msg` file.
+
+**Solutions**:
+
+1. Ensure the `prepare-commit-msg` file is in the same directory as the PowerShell script
+2. Check that the file name is exactly `prepare-commit-msg` (no extension)
+3. Verify the file exists and is readable
+4. Run the script from the directory containing both files
 
 ### "No .git folder found" Error
 
@@ -266,6 +278,7 @@ After installation, the hook will be located at:
 - **PowerShell**: PowerShell 3.0 or higher
 - **Windows**: Windows 7 or higher
 - **Unix-like systems**: Compatible with WSL, Git Bash, etc.
+- **Files**: Both `create_prepare_commit_mgs.ps1` and `prepare-commit-msg` must be in the same directory
 
 ## 🆕 Features
 
