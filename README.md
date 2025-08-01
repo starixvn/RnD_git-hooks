@@ -16,33 +16,33 @@ This tool automatically:
 
 ## 📁 Files
 
-- `create_prepare_commit_mgs.ps1` - PowerShell script (with custom path support)
+- `create_prepare_commit_mgs.bat` - Batch file version (Windows command prompt)
 - `prepare-commit-msg` - The Git hook script that gets installed
 - `README.md` - This guide
 
 ## 🚀 Quick Start
 
-```powershell
+```batch
 # From any directory in your Git repository
-.\create_prepare_commit_mgs.ps1
+create_prepare_commit_mgs.bat
 
 # Search from custom path
-.\create_prepare_commit_mgs.ps1 -Path "C:\projects\my-project"
+create_prepare_commit_mgs.bat "C:\projects\my-project"
 
 # With options
-.\create_prepare_commit_mgs.ps1 -Help
-.\create_prepare_commit_mgs.ps1 -Verbose
-.\create_prepare_commit_mgs.ps1 -Force
+create_prepare_commit_mgs.bat /help
+create_prepare_commit_mgs.bat /verbose
+create_prepare_commit_mgs.bat /force
 ```
 
 ## 📋 Command Line Options
 
-| Option      | PowerShell | Description                                            |
+| Option      | Batch File | Description                                            |
 | ----------- | ---------- | ------------------------------------------------------ |
-| Help        | `-Help`    | Show detailed help and usage information               |
-| Verbose     | `-Verbose` | Show detailed output during installation               |
-| Force       | `-Force`   | Overwrite existing hook without prompting              |
-| Custom Path | `-Path`    | Specify custom starting path for Git repository search |
+| Help        | `/help`    | Show detailed help and usage information               |
+| Verbose     | `/verbose` | Show detailed output during installation               |
+| Force       | `/force`   | Overwrite existing hook without prompting              |
+| Custom Path | First arg  | Specify custom starting path for Git repository search |
 
 ## 🏷️ Branch Naming Convention
 
@@ -103,59 +103,59 @@ git log --oneline -1
 
 ### Basic Installation
 
-```powershell
+```batch
 # Navigate to your project
 cd C:\projects\my-project
 
 # Run the script from any subdirectory
-.\create_prepare_commit_mgs.ps1
+create_prepare_commit_mgs.bat
 ```
 
 ### From Subdirectories
 
-```powershell
+```batch
 # Works from any subdirectory within the Git repository
 cd C:\projects\my-project\src\components\ui
-..\..\..\..\scripts\create_prepare_commit_mgs.ps1
+..\..\..\..\scripts\create_prepare_commit_mgs.bat
 ```
 
 ### Custom Path Search
 
-```powershell
+```batch
 # Search from a specific directory
-.\create_prepare_commit_mgs.ps1 -Path "C:\projects"
+create_prepare_commit_mgs.bat "C:\projects"
 
 # Search from a specific project
-.\create_prepare_commit_mgs.ps1 -Path "C:\projects\my-project"
+create_prepare_commit_mgs.bat "C:\projects\my-project"
 
 # Search with verbose output
-.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Verbose
+create_prepare_commit_mgs.bat "C:\projects" /verbose
 
 # Search from custom path and force overwrite
-.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Force
+create_prepare_commit_mgs.bat "C:\projects" /force
 
 # Search from custom path with all options
-.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Verbose -Force
+create_prepare_commit_mgs.bat "C:\projects" /verbose /force
 ```
 
 ### Verbose Installation
 
-```powershell
+```batch
 # See detailed output during installation
-.\create_prepare_commit_mgs.ps1 -Verbose
+create_prepare_commit_mgs.bat /verbose
 
 # See detailed output with custom path
-.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Verbose
+create_prepare_commit_mgs.bat "C:\projects" /verbose
 ```
 
 ### Force Overwrite
 
-```powershell
+```batch
 # Overwrite existing hook without prompting
-.\create_prepare_commit_mgs.ps1 -Force
+create_prepare_commit_mgs.bat /force
 
 # Overwrite existing hook from custom path
-.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Force
+create_prepare_commit_mgs.bat "C:\projects" /force
 ```
 
 ## 🔧 How It Works
@@ -223,7 +223,7 @@ fi
 
 **Solutions**:
 
-1. Ensure the `prepare-commit-msg` file is in the same directory as the PowerShell script
+1. Ensure the `prepare-commit-msg` file is in the same directory as the batch file
 2. Check that the file name is exactly `prepare-commit-msg` (no extension)
 3. Verify the file exists and is readable
 4. Run the script from the directory containing both files
@@ -237,12 +237,12 @@ fi
 1. Make sure you're running the script from within a Git repository
 2. Check that the `.git` folder exists in your project root
 3. Try running `git status` to verify you're in a Git repository
-4. Use `-Path` parameter to specify a custom search location
-5. Use `-Verbose` to see detailed search information
+4. Use custom path parameter to specify a custom search location
+5. Use `/verbose` to see detailed search information
 
 ### "Specified path does not exist" Error
 
-**Problem**: Custom path provided with `-Path` doesn't exist.
+**Problem**: Custom path provided doesn't exist.
 
 **Solutions**:
 
@@ -257,7 +257,7 @@ fi
 
 **Solutions**:
 
-1. Use `-Force` to overwrite
+1. Use `/force` to overwrite
 2. Manually backup and remove the existing hook first
 3. Review the existing hook to avoid conflicts
 
@@ -276,12 +276,12 @@ fi
 
 To update an existing hook:
 
-```powershell
+```batch
 # Basic update
-.\create_prepare_commit_mgs.ps1 -Force
+create_prepare_commit_mgs.bat /force
 
 # Update with custom path
-.\create_prepare_commit_mgs.ps1 -Path "C:\projects\my-project" -Force
+create_prepare_commit_mgs.bat "C:\projects\my-project" /force
 ```
 
 ## 🗂️ File Locations
@@ -295,26 +295,26 @@ After installation, the hook will be located at:
 ## 📋 Requirements
 
 - **Git**: Version 1.7 or higher
-- **PowerShell**: PowerShell 3.0 or higher
 - **Windows**: Windows 7 or higher
+- **Batch File**: Windows Command Prompt (no additional requirements)
 - **Unix-like systems**: Compatible with WSL, Git Bash, etc.
-- **Files**: Both `create_prepare_commit_mgs.ps1` and `prepare-commit-msg` must be in the same directory
+- **Files**: Both `create_prepare_commit_mgs.bat` and `prepare-commit-msg` must be in the same directory
 
 ## 🆕 Features
 
 ### Custom Path Support
 
-The PowerShell script supports searching from custom paths:
+The batch file supports searching from custom paths:
 
-```powershell
+```batch
 # Search from any directory without changing current location
-.\create_prepare_commit_mgs.ps1 -Path "D:\git3\game-clients\wild-west-client"
+create_prepare_commit_mgs.bat "D:\git3\game-clients\wild-west-client"
 
 # Search with verbose output
-.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Verbose
+create_prepare_commit_mgs.bat "C:\projects" /verbose
 
 # Search and force overwrite
-.\create_prepare_commit_mgs.ps1 -Path "C:\projects" -Force
+create_prepare_commit_mgs.bat "C:\projects" /force
 ```
 
 **Benefits**:
@@ -323,6 +323,7 @@ The PowerShell script supports searching from custom paths:
 - ✅ **Recursive**: Searches through all subdirectories from the specified path
 - ✅ **Error Handling**: Validates custom paths and provides clear error messages
 - ✅ **Verbose Support**: Shows detailed search information when using custom paths
+- ✅ **Simple**: No additional requirements beyond Windows Command Prompt
 
 ## 🤝 Contributing
 
@@ -347,7 +348,7 @@ If you encounter issues:
 2. Run the script with verbose mode for detailed output
 3. Verify your Git repository structure
 4. Check that your branch naming follows the convention
-5. Try using the `-Path` parameter for custom search locations
+5. Try using custom path parameter for custom search locations
 
 ## 🔗 Related Tools
 
