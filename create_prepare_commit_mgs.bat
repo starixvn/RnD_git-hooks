@@ -6,7 +6,6 @@ REM
 REM USAGE EXAMPLES:
 REM   create_prepare_commit_mgs.bat                    - Run from any directory within Git repo
 REM   create_prepare_commit_mgs.bat "C:\projects"     - Search from custom path
-REM   create_prepare_commit_mgs.bat /help              - Show this help
 REM   create_prepare_commit_mgs.bat /verbose           - Show detailed output
 REM   create_prepare_commit_mgs.bat /force             - Overwrite existing hook
 REM
@@ -32,9 +31,9 @@ set "CUSTOM_PATH="
 REM Parse command line arguments
 :parse_args
 if "%~1"=="" goto :end_parse
-if /i "%~1"=="-help" set "HELP_FLAG=1"
-if /i "%~1"=="--help" set "HELP_FLAG=1"
-if /i "%~1"=="/help" set "HELP_FLAG=1"
+REM if /i "%~1"=="-help" set "HELP_FLAG=1"
+REM if /i "%~1"=="--help" set "HELP_FLAG=1"
+REM if /i "%~1"=="/help" set "HELP_FLAG=1"
 if /i "%~1"=="-verbose" set "VERBOSE_FLAG=1"
 if /i "%~1"=="--verbose" set "VERBOSE_FLAG=1"
 if /i "%~1"=="/verbose" set "VERBOSE_FLAG=1"
@@ -53,12 +52,10 @@ if /i "%~1"=="/path" (
     set "CUSTOM_PATH=%~2"
     shift
 )
-if not "%~1"=="-help" if not "%~1"=="--help" if not "%~1"=="/help" (
-    if not "%~1"=="-verbose" if not "%~1"=="--verbose" if not "%~1"=="/verbose" (
-        if not "%~1"=="-force" if not "%~1"=="--force" if not "%~1"=="/force" (
-            if not "%~1"=="-path" if not "%~1"=="--path" if not "%~1"=="/path" (
-                if not defined CUSTOM_PATH set "CUSTOM_PATH=%~1"
-            )
+if not "%~1"=="-verbose" if not "%~1"=="--verbose" if not "%~1"=="/verbose" (
+    if not "%~1"=="-force" if not "%~1"=="--force" if not "%~1"=="/force" (
+        if not "%~1"=="-path" if not "%~1"=="--path" if not "%~1"=="/path" (
+            if not defined CUSTOM_PATH set "CUSTOM_PATH=%~1"
         )
     )
 )
@@ -67,7 +64,7 @@ goto :parse_args
 :end_parse
 
 REM Show help if requested
-if defined HELP_FLAG goto :show_help
+REM if defined HELP_FLAG goto :show_help
 
 REM Main script execution
 if defined VERBOSE_FLAG (
@@ -86,10 +83,10 @@ if defined CUSTOM_PATH (
     set "SEARCH_PATH=%CD%"
 )
 
-REM Find Git repository
-call :find_git_repository "!SEARCH_PATH!"
+REM Find all Git repositories
+call :find_all_git_repositories "!SEARCH_PATH!"
 if errorlevel 1 (
-    echo ERROR: No .git folder found!
+    echo ERROR: No .git folders found!
     echo Please run this script from within a Git repository or its subdirectories.
     if defined CUSTOM_PATH echo Searched from path: !CUSTOM_PATH!
     echo.
@@ -107,55 +104,63 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Create hooks directory if it doesn't exist
-set "HOOKS_DIR=!GIT_DIR!\hooks"
-if not exist "!HOOKS_DIR!" (
-    echo Creating hooks directory: !HOOKS_DIR!
-    mkdir "!HOOKS_DIR!" 2>nul
-) else (
-    if defined VERBOSE_FLAG echo Hooks directory already exists: !HOOKS_DIR!
-)
-
-REM Check if hook already exists
-set "HOOK_PATH=!HOOKS_DIR!\prepare-commit-msg"
-if exist "!HOOK_PATH!" (
-    if defined FORCE_FLAG (
-        echo Overwriting existing prepare-commit-msg hook...
+REM Install hook in all found repositories
+set "INSTALLED_COUNT=0"
+for %%i in (!GIT_DIRS!) do (
+    set "GIT_DIR=%%i"
+    set "HOOKS_DIR=!GIT_DIR!\hooks"
+    
+    if defined VERBOSE_FLAG echo Processing repository: !GIT_DIR!
+    
+    REM Create hooks directory if it doesn't exist
+    if not exist "!HOOKS_DIR!" (
+        echo Creating hooks directory: !HOOKS_DIR!
+        mkdir "!HOOKS_DIR!" 2>nul
     ) else (
-        echo WARNING: prepare-commit-msg hook already exists!
-        echo Use /force to overwrite it.
-        echo.
-        echo Existing hook location: !HOOK_PATH!
-        echo.
-        set /p "CONTINUE=Do you want to overwrite it? (y/N): "
-        if /i not "!CONTINUE!"=="y" (
-            echo Operation cancelled.
-            pause
-            exit /b 1
-        )
+        if defined VERBOSE_FLAG echo Hooks directory already exists: !HOOKS_DIR!
     )
+    
+    REM Check if hook already exists
+    set "HOOK_PATH=!HOOKS_DIR!\prepare-commit-msg"
+    if exist "!HOOK_PATH!" (
+        echo Overwriting existing prepare-commit-msg hook in: !HOOKS_DIR!
+    ) else (
+        echo Installing prepare-commit-msg hook in: !HOOKS_DIR!
+    )
+    
+    REM Copy the prepare-commit-msg file
+    set "SCRIPT_DIR=%~dp0"
+    if defined VERBOSE_FLAG echo Script directory: "!SCRIPT_DIR!"
+    set "SOURCE_HOOK_PATH=!SCRIPT_DIR!prepare-commit-msg"
+    if defined VERBOSE_FLAG echo Source hook path: "!SOURCE_HOOK_PATH!"
+    
+    REM Alternative method to get script directory if %~dp0 fails
+    if not exist "!SOURCE_HOOK_PATH!" (
+        set "SCRIPT_DIR=%CD%\"
+        set "SOURCE_HOOK_PATH=!SCRIPT_DIR!prepare-commit-msg"
+        if defined VERBOSE_FLAG echo Alternative script directory: "!SCRIPT_DIR!"
+        if defined VERBOSE_FLAG echo Alternative source hook path: "!SOURCE_HOOK_PATH!"
+    )
+    
+    if not exist "!SOURCE_HOOK_PATH!" (
+        echo ERROR: prepare-commit-msg file not found at: !SOURCE_HOOK_PATH!
+        echo Please ensure the prepare-commit-msg file is in the same directory as this script.
+        pause
+        exit /b 1
+    )
+    
+    if defined VERBOSE_FLAG (
+        echo Copying prepare-commit-msg from: !SOURCE_HOOK_PATH!
+        echo To: !HOOK_PATH!
+    )
+    
+    REM Copy the hook file
+    copy "!SOURCE_HOOK_PATH!" "!HOOK_PATH!" >nul 2>&1
+    
+    set /a "INSTALLED_COUNT+=1"
+    echo Successfully installed hook in: !HOOKS_DIR!
+    echo.
 )
-
-echo Creating prepare-commit-msg hook in: !HOOKS_DIR!
-
-REM Copy the prepare-commit-msg file
-set "SCRIPT_DIR=%~dp0"
-set "SOURCE_HOOK_PATH=!SCRIPT_DIR!prepare-commit-msg"
-
-if not exist "!SOURCE_HOOK_PATH!" (
-    echo ERROR: prepare-commit-msg file not found at: !SOURCE_HOOK_PATH!
-    echo Please ensure the prepare-commit-msg file is in the same directory as this script.
-    pause
-    exit /b 1
-)
-
-if defined VERBOSE_FLAG (
-    echo Copying prepare-commit-msg from: !SOURCE_HOOK_PATH!
-    echo To: !HOOK_PATH!
-)
-
-REM Copy the hook file
-copy "!SOURCE_HOOK_PATH!" "!HOOK_PATH!" >nul 2>&1
 
 if defined VERBOSE_FLAG (
     echo.
@@ -163,9 +168,7 @@ if defined VERBOSE_FLAG (
     echo INSTALLATION SUMMARY
     echo ========================================
     echo Search Path: !SEARCH_PATH!
-    echo Git Repository: !GIT_DIR!
-    echo Hooks Directory: !HOOKS_DIR!
-    echo Hook File: !HOOK_PATH!
+    echo Total Repositories Found: !INSTALLED_COUNT!
     echo.
     echo Hook will automatically:
     echo   - Append epic IDs to commit messages for GL-{id}- branches (case-insensitive)
@@ -174,7 +177,7 @@ if defined VERBOSE_FLAG (
     echo.
 )
 
-echo Successfully created prepare-commit-msg hook in: !HOOKS_DIR!
+echo Successfully installed prepare-commit-msg hook in !INSTALLED_COUNT! repositories!
 echo.
 echo Hook will automatically append epic IDs to commit messages for branches named GL-{id}-feature-name
 echo.
@@ -190,10 +193,12 @@ echo Script completed successfully!
 pause
 exit /b 0
 
-REM Function to find Git repository
-:find_git_repository
+REM Function to find all Git repositories
+:find_all_git_repositories
 set "START_PATH=%~1"
 set "CURRENT_PATH=!START_PATH!"
+set "GIT_DIRS="
+set "FOUND_COUNT=0"
 
 REM Validate the starting path
 if not exist "!CURRENT_PATH!" (
@@ -205,19 +210,27 @@ if defined VERBOSE_FLAG echo Starting Git repository search from: !CURRENT_PATH!
 
 REM Check current directory and subdirectories recursively
 if defined VERBOSE_FLAG echo Searching current directory and subdirectories...
-for /r "!CURRENT_PATH!" /d %%i in (.git) do (
+for /f "delims=" %%i in ('dir "!CURRENT_PATH!" /s /b /ad ^| findstr "\\\.git$"') do (
     if exist "%%i" (
         if defined VERBOSE_FLAG echo Found .git folder at: %%i
-        set "GIT_DIR=%%i"
-        exit /b 0
+        if defined GIT_DIRS (
+            set "GIT_DIRS=!GIT_DIRS! %%i"
+        ) else (
+            set "GIT_DIRS=%%i"
+        )
+        set /a "FOUND_COUNT+=1"
     )
 )
 
 REM Check if current directory is .git
 if exist "!CURRENT_PATH!\.git" (
-    set "GIT_DIR=!CURRENT_PATH!\.git"
-    if defined VERBOSE_FLAG echo Found .git folder at current location: !GIT_DIR!
-    exit /b 0
+    if defined VERBOSE_FLAG echo Found .git folder at current location: !CURRENT_PATH!\.git
+    if defined GIT_DIRS (
+        set "GIT_DIRS=!CURRENT_PATH!\.git !GIT_DIRS!"
+    ) else (
+        set "GIT_DIRS=!CURRENT_PATH!\.git"
+    )
+    set /a "FOUND_COUNT+=1"
 )
 
 REM Search parent directories
@@ -226,58 +239,25 @@ if defined VERBOSE_FLAG echo Searching parent directories for .git folder...
 set "PARENT_PATH=!CURRENT_PATH!"
 :search_parents
 for %%i in ("!PARENT_PATH!\..") do set "PARENT_PATH=%%~fi"
-if "!PARENT_PATH!"=="!CURRENT_PATH!" goto :not_found
+if "!PARENT_PATH!"=="!CURRENT_PATH!" goto :check_results
 if exist "!PARENT_PATH!\.git" (
-    set "GIT_DIR=!PARENT_PATH!\.git"
-    if defined VERBOSE_FLAG echo Found .git folder at: !GIT_DIR!
-    exit /b 0
+    if defined VERBOSE_FLAG echo Found .git folder at: !PARENT_PATH!\.git
+    if defined GIT_DIRS (
+        set "GIT_DIRS=!PARENT_PATH!\.git !GIT_DIRS!"
+    ) else (
+        set "GIT_DIRS=!PARENT_PATH!\.git"
+    )
+    set /a "FOUND_COUNT+=1"
 )
 set "CURRENT_PATH=!PARENT_PATH!"
 goto :search_parents
 
-:not_found
-exit /b 1
+:check_results
+if !FOUND_COUNT! gtr 0 (
+    if defined VERBOSE_FLAG echo Found !FOUND_COUNT! Git repositories
+    exit /b 0
+) else (
+    exit /b 1
+)
 
-REM Show help function
-:show_help
-echo.
-echo ========================================
-echo Git Prepare-Commit-Msg Hook Generator
-echo ========================================
-echo.
-echo This script automatically finds your Git repository and installs
-echo a prepare-commit-msg hook that appends epic IDs to commit messages.
-echo.
-echo USAGE:
-echo   %~nx0 [options]
-echo.
-echo OPTIONS:
-echo   /help     Show this help message
-echo   /verbose  Show detailed output during execution
-echo   /force    Overwrite existing prepare-commit-msg hook
-echo   /path     Specify custom starting path for Git repository search
-echo.
-echo EXAMPLES:
-echo   %~nx0                           - Install hook from any directory in repo
-echo   %~nx0 /verbose                 - Install with detailed output
-echo   %~nx0 /force                   - Overwrite existing hook
-echo   %~nx0 "C:\projects"           - Search from custom path
-echo   %~nx0 "C:\projects" /verbose  - Search with verbose output
-echo.
-echo WHAT IT DOES:
-echo   - Finds .git folder automatically (from current or specified path)
-echo   - Searches recursively through subdirectories
-echo   - Creates hooks directory if needed
-echo   - Installs prepare-commit-msg hook
-echo   - Appends "- Epic GL-123" to commits from GL-123-feature branches
-echo   - Removes Git's default help text from commit messages
-echo.
-echo BRANCH NAMING CONVENTION:
-echo   GL-123-feature-name    -^> Commit: "Your message - Epic GL-123"
-echo   gl-456-bug-fix         -^> Commit: "Your message - Epic GL-456"
-echo   Gl-aaa-feature         -^> Commit: "Your message - Epic GL-aaa"
-echo   gL-1a1b-test           -^> Commit: "Your message - Epic GL-1a1b"
-echo   main                   -^> Commit: "Your message" (no epic added)
-echo.
-pause
-exit /b 0 
+ 
