@@ -7,7 +7,6 @@ REM USAGE EXAMPLES:
 REM   create_prepare_commit_mgs.bat                    - Run from any directory within Git repo
 REM   create_prepare_commit_mgs.bat "C:\projects"     - Search from custom path
 REM   create_prepare_commit_mgs.bat /verbose           - Show detailed output
-REM   create_prepare_commit_mgs.bat /force             - Overwrite existing hook
 REM
 REM EXAMPLES:
 REM   cd C:\projects\my-project
@@ -25,7 +24,6 @@ REM   create_prepare_commit_mgs.bat "C:\projects" /verbose
 
 set "HELP_FLAG="
 set "VERBOSE_FLAG="
-set "FORCE_FLAG="
 set "CUSTOM_PATH="
 
 REM Parse command line arguments
@@ -37,9 +35,6 @@ REM if /i "%~1"=="/help" set "HELP_FLAG=1"
 if /i "%~1"=="-verbose" set "VERBOSE_FLAG=1"
 if /i "%~1"=="--verbose" set "VERBOSE_FLAG=1"
 if /i "%~1"=="/verbose" set "VERBOSE_FLAG=1"
-if /i "%~1"=="-force" set "FORCE_FLAG=1"
-if /i "%~1"=="--force" set "FORCE_FLAG=1"
-if /i "%~1"=="/force" set "FORCE_FLAG=1"
 if /i "%~1"=="-path" (
     set "CUSTOM_PATH=%~2"
     shift
@@ -53,10 +48,8 @@ if /i "%~1"=="/path" (
     shift
 )
 if not "%~1"=="-verbose" if not "%~1"=="--verbose" if not "%~1"=="/verbose" (
-    if not "%~1"=="-force" if not "%~1"=="--force" if not "%~1"=="/force" (
-        if not "%~1"=="-path" if not "%~1"=="--path" if not "%~1"=="/path" (
-            if not defined CUSTOM_PATH set "CUSTOM_PATH=%~1"
-        )
+    if not "%~1"=="-path" if not "%~1"=="--path" if not "%~1"=="/path" (
+        if not defined CUSTOM_PATH set "CUSTOM_PATH=%~1"
     )
 )
 shift

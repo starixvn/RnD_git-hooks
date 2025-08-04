@@ -31,7 +31,6 @@ create_prepare_commit_mgs.bat "C:\projects\my-project"
 
 # With options
 create_prepare_commit_mgs.bat /verbose
-create_prepare_commit_mgs.bat /force
 ```
 
 ## 📋 Command Line Options
@@ -39,10 +38,9 @@ create_prepare_commit_mgs.bat /force
 | Option      | Batch File | Description                                            |
 | ----------- | ---------- | ------------------------------------------------------ |
 | Verbose     | `/verbose` | Show detailed output during installation               |
-| Force       | `/force`   | Overwrite existing hook without prompting              |
 | Custom Path | First arg  | Specify custom starting path for Git repository search |
 
-**Note**: The `/help` option mentioned in some examples is commented out in the actual batch file and not functional.
+**Note**: The script always overwrites existing hooks without prompting.
 
 ## 🏷️ Branch Naming Convention
 
@@ -131,11 +129,11 @@ create_prepare_commit_mgs.bat "C:\projects\my-project"
 # Search with verbose output
 create_prepare_commit_mgs.bat "C:\projects" /verbose
 
-# Search from custom path and force overwrite
-create_prepare_commit_mgs.bat "C:\projects" /force
+# Search from custom path
+create_prepare_commit_mgs.bat "C:\projects"
 
-# Search from custom path with all options
-create_prepare_commit_mgs.bat "C:\projects" /verbose /force
+# Search from custom path with verbose
+create_prepare_commit_mgs.bat "C:\projects" /verbose
 ```
 
 ### Verbose Installation
@@ -148,14 +146,14 @@ create_prepare_commit_mgs.bat /verbose
 create_prepare_commit_mgs.bat "C:\projects" /verbose
 ```
 
-### Force Overwrite
+### Default Overwrite Behavior
 
 ```batch
-# Overwrite existing hook without prompting
-create_prepare_commit_mgs.bat /force
+# The script always overwrites existing hooks without prompting
+create_prepare_commit_mgs.bat
 
 # Overwrite existing hook from custom path
-create_prepare_commit_mgs.bat "C:\projects" /force
+create_prepare_commit_mgs.bat "C:\projects"
 ```
 
 ## 🔧 How It Works
@@ -251,15 +249,15 @@ fi
 3. Use absolute paths for better reliability
 4. Ensure you have read permissions for the specified directory
 
-### "Hook already exists" Warning
+### "Hook already exists" Information
 
-**Problem**: A `prepare-commit-msg` hook already exists.
+**Note**: The script automatically overwrites existing `prepare-commit-msg` hooks without prompting.
 
-**Solutions**:
+**If you want to preserve existing hooks**:
 
-1. Use `/force` to overwrite
-2. Manually backup and remove the existing hook first
-3. Review the existing hook to avoid conflicts
+1. Manually backup the existing hook first: `copy .git\hooks\prepare-commit-msg .git\hooks\prepare-commit-msg.backup`
+2. Run the script to install the new hook
+3. Review and merge any custom logic from your backup if needed
 
 ### Hook Not Working
 
@@ -277,11 +275,11 @@ fi
 To update an existing hook:
 
 ```batch
-# Basic update
-create_prepare_commit_mgs.bat /force
+# Basic update (always overwrites existing hooks)
+create_prepare_commit_mgs.bat
 
 # Update with custom path
-create_prepare_commit_mgs.bat "C:\projects\my-project" /force
+create_prepare_commit_mgs.bat "C:\projects\my-project"
 ```
 
 ## 🗂️ File Locations
@@ -313,8 +311,8 @@ create_prepare_commit_mgs.bat "D:\git3\game-clients\wild-west-client"
 # Search with verbose output
 create_prepare_commit_mgs.bat "C:\projects" /verbose
 
-# Search and force overwrite
-create_prepare_commit_mgs.bat "C:\projects" /force
+# Search and install (always overwrites existing hooks)
+create_prepare_commit_mgs.bat "C:\projects"
 ```
 
 **Benefits**:
