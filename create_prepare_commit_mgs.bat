@@ -67,7 +67,9 @@ if defined VERBOSE_FLAG (
     echo.
 )
 
-echo Searching for .git folder...
+echo ========================================
+echo SEARCHING FOR GIT REPOSITORIES
+echo ========================================
 
 REM Determine the starting path for search
 if defined CUSTOM_PATH (
@@ -75,6 +77,9 @@ if defined CUSTOM_PATH (
 ) else (
     set "SEARCH_PATH=%CD%"
 )
+
+echo Starting search from: !SEARCH_PATH!
+echo.
 
 REM Find all Git repositories
 call :find_all_git_repositories "!SEARCH_PATH!"
@@ -97,80 +102,95 @@ if errorlevel 1 (
     exit /b 1
 )
 
+echo ========================================
+echo INSTALLING PREPARE-COMMIT-MSG HOOKS
+echo ========================================
+
 REM Install hook in all found repositories
 set "INSTALLED_COUNT=0"
+set "TOTAL_REPOS=0"
+for %%i in (!GIT_DIRS!) do set /a "TOTAL_REPOS+=1"
+
 for %%i in (!GIT_DIRS!) do (
     set "GIT_DIR=%%i"
     set "HOOKS_DIR=!GIT_DIR!\hooks"
+    set /a "INSTALLED_COUNT+=1"
     
-    if defined VERBOSE_FLAG echo Processing repository: !GIT_DIR!
+    echo.
+    echo [!/TOTAL_REPOS!/!INSTALLED_COUNT!] Processing repository: !GIT_DIR!
     
     REM Create hooks directory if it doesn't exist
     if not exist "!HOOKS_DIR!" (
-        echo Creating hooks directory: !HOOKS_DIR!
+        echo   Creating hooks directory: !HOOKS_DIR!
         mkdir "!HOOKS_DIR!" 2>nul
+        if errorlevel 1 (
+            echo   ERROR: Failed to create hooks directory
+            echo   Skipping this repository...
+            goto :process_next_repo
+        )
     ) else (
-        if defined VERBOSE_FLAG echo Hooks directory already exists: !HOOKS_DIR!
+        if defined VERBOSE_FLAG echo   Hooks directory already exists: !HOOKS_DIR!
     )
     
     REM Check if hook already exists
     set "HOOK_PATH=!HOOKS_DIR!\prepare-commit-msg"
     if exist "!HOOK_PATH!" (
-        echo Overwriting existing prepare-commit-msg hook in: !HOOKS_DIR!
+        echo   Overwriting existing prepare-commit-msg hook...
     ) else (
-        echo Installing prepare-commit-msg hook in: !HOOKS_DIR!
+        echo   Installing new prepare-commit-msg hook...
     )
     
     REM Copy the prepare-commit-msg file
     set "SCRIPT_DIR=%~dp0"
-    if defined VERBOSE_FLAG echo Script directory: "!SCRIPT_DIR!"
+    if defined VERBOSE_FLAG echo   Script directory: "!SCRIPT_DIR!"
     set "SOURCE_HOOK_PATH=!SCRIPT_DIR!prepare-commit-msg"
-    if defined VERBOSE_FLAG echo Source hook path: "!SOURCE_HOOK_PATH!"
+    if defined VERBOSE_FLAG echo   Source hook path: "!SOURCE_HOOK_PATH!"
     
     REM Alternative method to get script directory if %~dp0 fails
     if not exist "!SOURCE_HOOK_PATH!" (
-        set "SCRIPT_DIR=%CD%\"
+        set "SCRIPT_DIR=%CD%\" 
         set "SOURCE_HOOK_PATH=!SCRIPT_DIR!prepare-commit-msg"
-        if defined VERBOSE_FLAG echo Alternative script directory: "!SCRIPT_DIR!"
-        if defined VERBOSE_FLAG echo Alternative source hook path: "!SOURCE_HOOK_PATH!"
+        if defined VERBOSE_FLAG echo   Alternative script directory: "!SCRIPT_DIR!"
+        if defined VERBOSE_FLAG echo   Alternative source hook path: "!SOURCE_HOOK_PATH!"
     )
     
     if not exist "!SOURCE_HOOK_PATH!" (
-        echo ERROR: prepare-commit-msg file not found at: !SOURCE_HOOK_PATH!
-        echo Please ensure the prepare-commit-msg file is in the same directory as this script.
-        pause
-        exit /b 1
+        echo   ERROR: prepare-commit-msg file not found at: !SOURCE_HOOK_PATH!
+        echo   Please ensure the prepare-commit-msg file is in the same directory as this script.
+        echo   Skipping this repository...
+        goto :process_next_repo
     )
     
     if defined VERBOSE_FLAG (
-        echo Copying prepare-commit-msg from: !SOURCE_HOOK_PATH!
-        echo To: !HOOK_PATH!
+        echo   Copying prepare-commit-msg from: !SOURCE_HOOK_PATH!
+        echo   To: !HOOK_PATH!
     )
     
     REM Copy the hook file and show status
-    echo Copying prepare-commit-msg hook...
+    echo   Copying prepare-commit-msg hook...
     copy "!SOURCE_HOOK_PATH!" "!HOOK_PATH!" >nul 2>&1
     if errorlevel 1 (
-        echo ERROR: Failed to copy prepare-commit-msg hook to: !HOOK_PATH!
-        echo Please check file permissions and try again.
-        pause
-        exit /b 1
+        echo   ERROR: Failed to copy prepare-commit-msg hook to: !HOOK_PATH!
+        echo   Please check file permissions and try again.
+        echo   Skipping this repository...
+        goto :process_next_repo
     ) else (
-        echo Successfully copied prepare-commit-msg hook to: !HOOK_PATH!
+        echo   [OK] Successfully copied prepare-commit-msg hook to: !HOOK_PATH!
     )
     
-    set /a "INSTALLED_COUNT+=1"
-    echo Successfully installed hook in: !HOOKS_DIR!
-    echo.
+    echo   [OK] Successfully installed hook in: !HOOKS_DIR!
 )
 
+:process_next_repo
+
+echo.
+echo ========================================
+echo INSTALLATION COMPLETE
+echo ========================================
+
 if defined VERBOSE_FLAG (
-    echo.
-    echo ========================================
-    echo INSTALLATION SUMMARY
-    echo ========================================
     echo Search Path: !SEARCH_PATH!
-    echo Total Repositories Found: !INSTALLED_COUNT!
+    echo Total Repositories Found: !TOTAL_REPOS!
     echo.
     echo Hook will automatically:
     echo   - Append epic IDs to commit messages for GL-{id}- branches (case-insensitive)
@@ -179,7 +199,7 @@ if defined VERBOSE_FLAG (
     echo.
 )
 
-echo Successfully installed prepare-commit-msg hook in !INSTALLED_COUNT! repositories!
+echo Successfully processed !TOTAL_REPOS! repositories!
 echo.
 echo Hook will automatically append epic IDs to commit messages for branches named GL-{id}-feature-name
 echo.
@@ -208,13 +228,15 @@ if not exist "!CURRENT_PATH!" (
     exit /b 1
 )
 
-if defined VERBOSE_FLAG echo Starting Git repository search from: !CURRENT_PATH!
+echo Searching for .git folders...
+echo.
 
 REM Check current directory and subdirectories recursively
-if defined VERBOSE_FLAG echo Searching current directory and subdirectories...
+echo [1/3] Searching current directory and subdirectories...
+echo   Scanning: !CURRENT_PATH!
 for /f "delims=" %%i in ('dir "!CURRENT_PATH!" /s /b /ad ^| findstr "\\\.git$"') do (
     if exist "%%i" (
-        if defined VERBOSE_FLAG echo Found .git folder at: %%i
+        echo   [OK] Found .git folder at: %%i
         if defined GIT_DIRS (
             set "GIT_DIRS=!GIT_DIRS! %%i"
         ) else (
@@ -225,25 +247,31 @@ for /f "delims=" %%i in ('dir "!CURRENT_PATH!" /s /b /ad ^| findstr "\\\.git$"')
 )
 
 REM Check if current directory is .git
+echo [2/3] Checking current directory for .git folder...
 if exist "!CURRENT_PATH!\.git" (
-    if defined VERBOSE_FLAG echo Found .git folder at current location: !CURRENT_PATH!\.git
+    echo   [OK] Found .git folder at current location: !CURRENT_PATH!\.git
     if defined GIT_DIRS (
         set "GIT_DIRS=!CURRENT_PATH!\.git !GIT_DIRS!"
     ) else (
         set "GIT_DIRS=!CURRENT_PATH!\.git"
     )
     set /a "FOUND_COUNT+=1"
+) else (
+    echo   No .git folder found in current directory
 )
 
 REM Search parent directories
-if defined VERBOSE_FLAG echo Searching parent directories for .git folder...
+echo [3/3] Searching parent directories for .git folder...
 
 set "PARENT_PATH=!CURRENT_PATH!"
+set "PARENT_LEVEL=0"
 :search_parents
 for %%i in ("!PARENT_PATH!\..") do set "PARENT_PATH=%%~fi"
 if "!PARENT_PATH!"=="!CURRENT_PATH!" goto :check_results
+set /a "PARENT_LEVEL+=1"
+echo   Checking parent level !PARENT_LEVEL!: !PARENT_PATH!
 if exist "!PARENT_PATH!\.git" (
-    if defined VERBOSE_FLAG echo Found .git folder at: !PARENT_PATH!\.git
+    echo   [OK] Found .git folder at: !PARENT_PATH!\.git
     if defined GIT_DIRS (
         set "GIT_DIRS=!PARENT_PATH!\.git !GIT_DIRS!"
     ) else (
@@ -255,10 +283,17 @@ set "CURRENT_PATH=!PARENT_PATH!"
 goto :search_parents
 
 :check_results
+echo.
 if !FOUND_COUNT! gtr 0 (
-    if defined VERBOSE_FLAG echo Found !FOUND_COUNT! Git repositories
+    echo [OK] Found !FOUND_COUNT! Git repositories
+    if defined VERBOSE_FLAG (
+        echo.
+        echo Repository locations:
+        for %%i in (!GIT_DIRS!) do echo   - %%i
+    )
     exit /b 0
 ) else (
+    echo [ERROR] No Git repositories found
     exit /b 1
 )
 
