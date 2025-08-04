@@ -154,8 +154,17 @@ for %%i in (!GIT_DIRS!) do (
         echo To: !HOOK_PATH!
     )
     
-    REM Copy the hook file
+    REM Copy the hook file and show status
+    echo Copying prepare-commit-msg hook...
     copy "!SOURCE_HOOK_PATH!" "!HOOK_PATH!" >nul 2>&1
+    if errorlevel 1 (
+        echo ERROR: Failed to copy prepare-commit-msg hook to: !HOOK_PATH!
+        echo Please check file permissions and try again.
+        pause
+        exit /b 1
+    ) else (
+        echo Successfully copied prepare-commit-msg hook to: !HOOK_PATH!
+    )
     
     set /a "INSTALLED_COUNT+=1"
     echo Successfully installed hook in: !HOOKS_DIR!

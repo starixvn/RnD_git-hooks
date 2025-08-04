@@ -30,7 +30,6 @@ create_prepare_commit_mgs.bat
 create_prepare_commit_mgs.bat "C:\projects\my-project"
 
 # With options
-create_prepare_commit_mgs.bat /help
 create_prepare_commit_mgs.bat /verbose
 create_prepare_commit_mgs.bat /force
 ```
@@ -39,10 +38,11 @@ create_prepare_commit_mgs.bat /force
 
 | Option      | Batch File | Description                                            |
 | ----------- | ---------- | ------------------------------------------------------ |
-| Help        | `/help`    | Show detailed help and usage information               |
 | Verbose     | `/verbose` | Show detailed output during installation               |
 | Force       | `/force`   | Overwrite existing hook without prompting              |
 | Custom Path | First arg  | Specify custom starting path for Git repository search |
+
+**Note**: The `/help` option mentioned in some examples is commented out in the actual batch file and not functional.
 
 ## 🏷️ Branch Naming Convention
 
@@ -181,7 +181,7 @@ The script automatically finds your `.git` folder by:
 The installed hook:
 
 - Extracts the current branch name using `git rev-parse --abbrev-ref HEAD`
-- Checks if the branch matches the pattern `GL-{number}-`
+- Checks if the branch matches the pattern `GL-{alphanumeric}-` (case-insensitive)
 - Extracts the epic ID using regex
 - Appends `- Epic GL-{id}` to the first line of the commit message
 - Removes Git's default help text using Perl
@@ -324,6 +324,15 @@ create_prepare_commit_mgs.bat "C:\projects" /force
 - ✅ **Error Handling**: Validates custom paths and provides clear error messages
 - ✅ **Verbose Support**: Shows detailed search information when using custom paths
 - ✅ **Simple**: No additional requirements beyond Windows Command Prompt
+
+### Multiple Repository Support
+
+The script can find and install hooks in multiple Git repositories:
+
+- Searches recursively through directories
+- Finds all `.git` folders in the search path
+- Installs the hook in each repository found
+- Provides a count of installations completed
 
 ## 🤝 Contributing
 
