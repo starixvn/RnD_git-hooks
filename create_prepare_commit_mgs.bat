@@ -115,6 +115,7 @@ for %%i in (!GIT_DIRS!) do (
     set "GIT_DIR=%%i"
     set "HOOKS_DIR=!GIT_DIR!\hooks"
     set /a "INSTALLED_COUNT+=1"
+    set "PROCESSING_ERROR="
     
     echo.
     echo [!/TOTAL_REPOS!/!INSTALLED_COUNT!] Processing repository: !GIT_DIR!
@@ -126,62 +127,69 @@ for %%i in (!GIT_DIRS!) do (
         if errorlevel 1 (
             echo   ERROR: Failed to create hooks directory
             echo   Skipping this repository...
-            goto :process_next_repo
+            set "PROCESSING_ERROR=1"
         )
     ) else (
         if defined VERBOSE_FLAG echo   Hooks directory already exists: !HOOKS_DIR!
     )
     
-    REM Check if hook already exists
-    set "HOOK_PATH=!HOOKS_DIR!\prepare-commit-msg"
-    if exist "!HOOK_PATH!" (
-        echo   Overwriting existing prepare-commit-msg hook...
-    ) else (
-        echo   Installing new prepare-commit-msg hook...
-    )
-    
-    REM Copy the prepare-commit-msg file
-    set "SCRIPT_DIR=%~dp0"
-    if defined VERBOSE_FLAG echo   Script directory: "!SCRIPT_DIR!"
-    set "SOURCE_HOOK_PATH=!SCRIPT_DIR!prepare-commit-msg"
-    if defined VERBOSE_FLAG echo   Source hook path: "!SOURCE_HOOK_PATH!"
-    
-    REM Alternative method to get script directory if %~dp0 fails
-    if not exist "!SOURCE_HOOK_PATH!" (
-        set "SCRIPT_DIR=%CD%\" 
+    REM Only continue if no error occurred
+    if not defined PROCESSING_ERROR (
+        REM Check if hook already exists
+        set "HOOK_PATH=!HOOKS_DIR!\prepare-commit-msg"
+        if exist "!HOOK_PATH!" (
+            echo   Overwriting existing prepare-commit-msg hook...
+        ) else (
+            echo   Installing new prepare-commit-msg hook...
+        )
+        
+        REM Copy the prepare-commit-msg file
+        set "SCRIPT_DIR=%~dp0"
+        if defined VERBOSE_FLAG echo   Script directory: "!SCRIPT_DIR!"
         set "SOURCE_HOOK_PATH=!SCRIPT_DIR!prepare-commit-msg"
-        if defined VERBOSE_FLAG echo   Alternative script directory: "!SCRIPT_DIR!"
-        if defined VERBOSE_FLAG echo   Alternative source hook path: "!SOURCE_HOOK_PATH!"
+        if defined VERBOSE_FLAG echo   Source hook path: "!SOURCE_HOOK_PATH!"
+        
+        REM Alternative method to get script directory if %~dp0 fails
+        if not exist "!SOURCE_HOOK_PATH!" (
+            set "SCRIPT_DIR=%CD%\" 
+            set "SOURCE_HOOK_PATH=!SCRIPT_DIR!prepare-commit-msg"
+            if defined VERBOSE_FLAG echo   Alternative script directory: "!SCRIPT_DIR!"
+            if defined VERBOSE_FLAG echo   Alternative source hook path: "!SOURCE_HOOK_PATH!"
+        )
+        
+        if not exist "!SOURCE_HOOK_PATH!" (
+            echo   ERROR: prepare-commit-msg file not found at: !SOURCE_HOOK_PATH!
+            echo   Please ensure the prepare-commit-msg file is in the same directory as this script.
+            echo   Skipping this repository...
+            set "PROCESSING_ERROR=1"
+        )
+        
+        REM Only continue if no error occurred
+        if not defined PROCESSING_ERROR (
+            if defined VERBOSE_FLAG (
+                echo   Copying prepare-commit-msg from: !SOURCE_HOOK_PATH!
+                echo   To: !HOOK_PATH!
+            )
+            
+            REM Copy the hook file and show status
+            echo   Copying prepare-commit-msg hook...
+            copy "!SOURCE_HOOK_PATH!" "!HOOK_PATH!" >nul 2>&1
+            if errorlevel 1 (
+                echo   ERROR: Failed to copy prepare-commit-msg hook to: !HOOK_PATH!
+                echo   Please check file permissions and try again.
+                echo   Skipping this repository...
+                set "PROCESSING_ERROR=1"
+            ) else (
+                echo   [OK] Successfully copied prepare-commit-msg hook to: !HOOK_PATH!
+            )
+            
+            REM Only show success if no error occurred
+            if not defined PROCESSING_ERROR (
+                echo   [OK] Successfully installed hook in: !HOOKS_DIR!
+            )
+        )
     )
-    
-    if not exist "!SOURCE_HOOK_PATH!" (
-        echo   ERROR: prepare-commit-msg file not found at: !SOURCE_HOOK_PATH!
-        echo   Please ensure the prepare-commit-msg file is in the same directory as this script.
-        echo   Skipping this repository...
-        goto :process_next_repo
-    )
-    
-    if defined VERBOSE_FLAG (
-        echo   Copying prepare-commit-msg from: !SOURCE_HOOK_PATH!
-        echo   To: !HOOK_PATH!
-    )
-    
-    REM Copy the hook file and show status
-    echo   Copying prepare-commit-msg hook...
-    copy "!SOURCE_HOOK_PATH!" "!HOOK_PATH!" >nul 2>&1
-    if errorlevel 1 (
-        echo   ERROR: Failed to copy prepare-commit-msg hook to: !HOOK_PATH!
-        echo   Please check file permissions and try again.
-        echo   Skipping this repository...
-        goto :process_next_repo
-    ) else (
-        echo   [OK] Successfully copied prepare-commit-msg hook to: !HOOK_PATH!
-    )
-    
-    echo   [OK] Successfully installed hook in: !HOOKS_DIR!
 )
-
-:process_next_repo
 
 echo.
 echo ========================================
