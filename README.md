@@ -8,11 +8,13 @@ This tool automatically:
 
 - **Finds your Git repository** from any subdirectory or custom path
 - **Searches recursively** through directories to locate `.git` folders
+- **Excludes node_modules** directories to avoid false positives
 - **Creates the hooks directory** if it doesn't exist
 - **Installs a prepare-commit-msg hook** that:
   - Appends `- Epic GL-{id}` to commit messages from branches named `GL-{id}-feature-name`
   - Removes Git's default help text from commit messages
   - Works with `git commit`, `git commit -m`, and interactive commits
+- **Supports global installation** for system-wide hook management
 
 ## 📁 Files
 
@@ -26,21 +28,64 @@ This tool automatically:
 # From any directory in your Git repository
 create_prepare_commit_mgs.bat
 
+# Install globally (recommended)
+create_prepare_commit_mgs.bat /global
+
 # Search from custom path
 create_prepare_commit_mgs.bat "C:\projects\my-project"
 
 # With options
 create_prepare_commit_mgs.bat /verbose
+create_prepare_commit_mgs.bat /global /verbose
 ```
 
 ## 📋 Command Line Options
 
-| Option      | Batch File | Description                                            |
-| ----------- | ---------- | ------------------------------------------------------ |
-| Verbose     | `/verbose` | Show detailed output during installation               |
-| Custom Path | First arg  | Specify custom starting path for Git repository search |
+| Option      | Batch File | Description                                              |
+| ----------- | ---------- | -------------------------------------------------------- |
+| Verbose     | `/verbose` | Show detailed output during installation                 |
+| Global      | `/global`  | Install hook globally for all repositories (recommended) |
+| Custom Path | First arg  | Specify custom starting path for Git repository search   |
 
 **Note**: The script always overwrites existing hooks without prompting.
+
+## 🌍 Global Installation (Recommended)
+
+The script now supports global installation, which is the recommended approach:
+
+```batch
+# Install globally for all repositories
+create_prepare_commit_mgs.bat /global
+
+# Install globally with verbose output
+create_prepare_commit_mgs.bat /global /verbose
+```
+
+### Benefits of Global Installation:
+
+✅ **One-time setup** - Install once, works everywhere  
+✅ **No need to copy to each repository**  
+✅ **Automatic for new repositories**  
+✅ **Easier maintenance** - update one file, affects all repos  
+✅ **Consistent behavior** across all your Git repositories
+
+### How Global Installation Works:
+
+1. **Creates global hooks directory** at `%USERPROFILE%\.git\hooks`
+2. **Copies the prepare-commit-msg hook** to the global location
+3. **Sets Git's global hooks path** using `git config --global core.hooksPath`
+4. **Applies to ALL repositories** on your system automatically
+
+### Testing Global Installation:
+
+After installing globally, test it in any repository:
+
+```bash
+git checkout -b GL-123-test-feature
+git commit -m "Add new feature"
+git log --oneline -1
+# Expected: "Add new feature - Epic GL-123"
+```
 
 ## 🏷️ Branch Naming Convention
 
@@ -99,6 +144,16 @@ git log --oneline -1
 
 ## 📖 Detailed Usage Examples
 
+### Global Installation (Recommended)
+
+```batch
+# Install globally for all repositories
+create_prepare_commit_mgs.bat /global
+
+# Install globally with verbose output
+create_prepare_commit_mgs.bat /global /verbose
+```
+
 ### Basic Installation
 
 ```batch
@@ -144,6 +199,9 @@ create_prepare_commit_mgs.bat /verbose
 
 # See detailed output with custom path
 create_prepare_commit_mgs.bat "C:\projects" /verbose
+
+# See detailed output with global installation
+create_prepare_commit_mgs.bat /global /verbose
 ```
 
 ### Default Overwrite Behavior
@@ -166,6 +224,7 @@ The script automatically finds your `.git` folder by:
 - **Recursive subdirectory search**: Searching through all subdirectories
 - **Parent directory search**: Searching up the directory tree if needed
 - **Path validation**: Verifying custom paths exist before searching
+- **node_modules exclusion**: Automatically skips `.git` folders inside `node_modules` directories
 
 ### 2. Hook Installation
 
@@ -173,8 +232,18 @@ The script automatically finds your `.git` folder by:
 - Copies the `prepare-commit-msg` hook script from the script directory
 - Sets appropriate file permissions
 - Provides clear feedback on success or failure
+- **Improved error handling**: Continues processing other repositories if one fails
 
-### 3. Hook Functionality
+### 3. Global Installation
+
+When using `/global`:
+
+- Detects or creates Git's global hooks directory
+- Copies the hook to the global location
+- Sets `git config --global core.hooksPath`
+- Applies to all repositories on the system
+
+### 4. Hook Functionality
 
 The installed hook:
 
@@ -249,6 +318,17 @@ fi
 3. Use absolute paths for better reliability
 4. Ensure you have read permissions for the specified directory
 
+### "Failed to create global hooks directory" Error
+
+**Problem**: Global installation failed due to permissions or path issues.
+
+**Solutions**:
+
+1. Run the script as administrator if needed
+2. Check that `%USERPROFILE%` is accessible
+3. Verify Git is properly installed
+4. Try manual installation: `git config --global core.hooksPath "%USERPROFILE%\.git\hooks"`
+
 ### "Hook already exists" Information
 
 **Note**: The script automatically overwrites existing `prepare-commit-msg` hooks without prompting.
@@ -269,6 +349,7 @@ fi
 2. Check branch naming follows the pattern: `GL-{id}-feature-name` (case-insensitive, alphanumeric IDs)
 3. Test with verbose mode to see detailed output
 4. Check Git version compatibility (works with Git 1.7+)
+5. For global installation, verify: `git config --global core.hooksPath`
 
 ## 🔄 Updating the Hook
 
@@ -280,6 +361,9 @@ create_prepare_commit_mgs.bat
 
 # Update with custom path
 create_prepare_commit_mgs.bat "C:\projects\my-project"
+
+# Update global installation
+create_prepare_commit_mgs.bat /global
 ```
 
 ## 🗂️ File Locations
@@ -287,7 +371,11 @@ create_prepare_commit_mgs.bat "C:\projects\my-project"
 After installation, the hook will be located at:
 
 ```
+# Per-repository installation
 {your-project}/.git/hooks/prepare-commit-msg
+
+# Global installation
+%USERPROFILE%/.git/hooks/prepare-commit-msg
 ```
 
 ## 📋 Requirements
@@ -299,6 +387,42 @@ After installation, the hook will be located at:
 - **Files**: Both `create_prepare_commit_mgs.bat` and `prepare-commit-msg` must be in the same directory
 
 ## 🆕 Features
+
+### Global Installation
+
+The script now supports global installation for system-wide hook management:
+
+```batch
+# Install globally for all repositories
+create_prepare_commit_mgs.bat /global
+
+# Install globally with verbose output
+create_prepare_commit_mgs.bat /global /verbose
+```
+
+**Benefits**:
+
+- ✅ **One-time setup** - Install once, works everywhere
+- ✅ **Automatic for new repositories** - No need to install per repository
+- ✅ **Easier maintenance** - Update one file, affects all repos
+- ✅ **Consistent behavior** - Same hook behavior across all repositories
+
+### node_modules Exclusion
+
+The script now automatically excludes `.git` folders found inside `node_modules` directories:
+
+- **Prevents false positives** from npm packages that include Git metadata
+- **Faster processing** by skipping irrelevant directories
+- **Cleaner output** with fewer irrelevant results
+
+### Improved Error Handling
+
+Enhanced error handling with flag-based processing:
+
+- **Continues processing** other repositories if one fails
+- **Better error messages** with specific failure reasons
+- **Graceful degradation** - partial success is better than complete failure
+- **Verbose logging** for debugging installation issues
 
 ### Custom Path Support
 
@@ -331,6 +455,7 @@ The script can find and install hooks in multiple Git repositories:
 - Finds all `.git` folders in the search path
 - Installs the hook in each repository found
 - Provides a count of installations completed
+- **Improved reliability** - continues processing even if some repositories fail
 
 ## 🤝 Contributing
 
@@ -356,6 +481,7 @@ If you encounter issues:
 3. Verify your Git repository structure
 4. Check that your branch naming follows the convention
 5. Try using custom path parameter for custom search locations
+6. For global installation issues, check Git's global configuration
 
 ## 🔗 Related Tools
 

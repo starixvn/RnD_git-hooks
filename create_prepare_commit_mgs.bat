@@ -7,6 +7,7 @@ REM USAGE EXAMPLES:
 REM   create_prepare_commit_mgs.bat                    - Run from any directory within Git repo
 REM   create_prepare_commit_mgs.bat "C:\projects"     - Search from custom path
 REM   create_prepare_commit_mgs.bat /verbose           - Show detailed output
+REM   create_prepare_commit_mgs.bat /global            - Install hook globally (recommended)
 REM
 REM EXAMPLES:
 REM   cd C:\projects\my-project
@@ -21,10 +22,15 @@ REM
 REM   REM Search from custom path
 REM   create_prepare_commit_mgs.bat "C:\projects\my-project"
 REM   create_prepare_commit_mgs.bat "C:\projects" /verbose
+REM
+REM   REM Install globally (recommended)
+REM   create_prepare_commit_mgs.bat /global
+REM   create_prepare_commit_mgs.bat /global /verbose
 
 set "HELP_FLAG="
 set "VERBOSE_FLAG="
 set "CUSTOM_PATH="
+set "GLOBAL_FLAG="
 
 REM Parse command line arguments
 :parse_args
@@ -35,6 +41,9 @@ REM if /i "%~1"=="/help" set "HELP_FLAG=1"
 if /i "%~1"=="-verbose" set "VERBOSE_FLAG=1"
 if /i "%~1"=="--verbose" set "VERBOSE_FLAG=1"
 if /i "%~1"=="/verbose" set "VERBOSE_FLAG=1"
+if /i "%~1"=="-global" set "GLOBAL_FLAG=1"
+if /i "%~1"=="--global" set "GLOBAL_FLAG=1"
+if /i "%~1"=="/global" set "GLOBAL_FLAG=1"
 if /i "%~1"=="-path" (
     set "CUSTOM_PATH=%~2"
     shift
@@ -48,8 +57,10 @@ if /i "%~1"=="/path" (
     shift
 )
 if not "%~1"=="-verbose" if not "%~1"=="--verbose" if not "%~1"=="/verbose" (
-    if not "%~1"=="-path" if not "%~1"=="--path" if not "%~1"=="/path" (
-        if not defined CUSTOM_PATH set "CUSTOM_PATH=%~1"
+    if not "%~1"=="-global" if not "%~1"=="--global" if not "%~1"=="/global" (
+        if not "%~1"=="-path" if not "%~1"=="--path" if not "%~1"=="/path" (
+            if not defined CUSTOM_PATH set "CUSTOM_PATH=%~1"
+        )
     )
 )
 shift
@@ -64,7 +75,51 @@ if defined VERBOSE_FLAG (
     echo Running in verbose mode...
     echo Current directory: %CD%
     if defined CUSTOM_PATH echo Custom search path: !CUSTOM_PATH!
+    if defined GLOBAL_FLAG echo Global installation mode enabled
     echo.
+)
+
+REM Check if global installation is requested
+if defined GLOBAL_FLAG (
+    echo ========================================
+    echo INSTALLING GLOBAL PREPARE-COMMIT-MSG HOOK
+    echo ========================================
+    
+    call :install_global_hook
+    if errorlevel 1 (
+        echo ERROR: Failed to install global hook!
+        pause
+        exit /b 1
+    )
+    
+    echo.
+    echo ========================================
+    echo GLOBAL INSTALLATION COMPLETE
+    echo ========================================
+    
+    if defined VERBOSE_FLAG (
+        echo Global hook installed successfully!
+        echo.
+        echo The hook will now apply to ALL Git repositories on this system.
+        echo No need to install per repository anymore.
+        echo.
+    )
+    
+    echo Successfully installed global prepare-commit-msg hook!
+    echo.
+    echo The hook will automatically apply to all Git repositories.
+    echo.
+    echo TESTING:
+    echo   1. Create a branch: git checkout -b GL-123-test-feature
+    echo   2. Make a commit: git commit -m "Add new feature"
+    echo   3. Check result: git log --oneline -1
+    echo   4. Expected: "Add new feature - Epic GL-123"
+    echo   5. Test case-insensitive: git checkout -b gl-456-test (outputs GL-456)
+    echo   6. Test alphanumeric: git checkout -b Gl-aaa-feature (outputs GL-aaa)
+    echo.
+    echo Script completed successfully!
+    pause
+    exit /b 0
 )
 
 echo ========================================
@@ -97,6 +152,9 @@ if errorlevel 1 (
     echo.
     echo   REM Or specify a custom path:
     echo   %~nx0 "C:\projects\my-project"
+    echo.
+    echo   REM Or install globally (recommended):
+    echo   %~nx0 /global
     echo.
     pause
     exit /b 1
@@ -221,6 +279,97 @@ echo   6. Test alphanumeric: git checkout -b Gl-aaa-feature (outputs GL-aaa)
 echo.
 echo Script completed successfully!
 pause
+exit /b 0
+
+REM Function to install global hook
+:install_global_hook
+echo Installing global prepare-commit-msg hook...
+echo.
+
+REM Get Git's global hooks directory
+for /f "delims=" %%i in ('git config --global core.hooksPath 2^>nul') do set "GLOBAL_HOOKS_DIR=%%i"
+
+REM If not set, use default location
+if not defined GLOBAL_HOOKS_DIR (
+    REM Use user profile as default
+    set "GLOBAL_HOOKS_DIR=%USERPROFILE%\.git\hooks"
+)
+
+echo Global hooks directory: !GLOBAL_HOOKS_DIR!
+
+REM Create global hooks directory if it doesn't exist
+if not exist "!GLOBAL_HOOKS_DIR!" (
+    echo Creating global hooks directory...
+    mkdir "!GLOBAL_HOOKS_DIR!" 2>nul
+    if errorlevel 1 (
+        echo ERROR: Failed to create global hooks directory: !GLOBAL_HOOKS_DIR!
+        echo Please check permissions and try again.
+        exit /b 1
+    )
+) else (
+    if defined VERBOSE_FLAG echo Global hooks directory already exists: !GLOBAL_HOOKS_DIR!
+)
+
+REM Check if hook already exists
+set "HOOK_PATH=!GLOBAL_HOOKS_DIR!\prepare-commit-msg"
+if exist "!HOOK_PATH!" (
+    echo Overwriting existing global prepare-commit-msg hook...
+) else (
+    echo Installing new global prepare-commit-msg hook...
+)
+
+REM Copy the prepare-commit-msg file
+set "SCRIPT_DIR=%~dp0"
+if defined VERBOSE_FLAG echo Script directory: "!SCRIPT_DIR!"
+set "SOURCE_HOOK_PATH=!SCRIPT_DIR!prepare-commit-msg"
+if defined VERBOSE_FLAG echo Source hook path: "!SOURCE_HOOK_PATH!"
+
+REM Alternative method to get script directory if %~dp0 fails
+if not exist "!SOURCE_HOOK_PATH!" (
+    set "SCRIPT_DIR=%CD%\" 
+    set "SOURCE_HOOK_PATH=!SCRIPT_DIR!prepare-commit-msg"
+    if defined VERBOSE_FLAG echo Alternative script directory: "!SCRIPT_DIR!"
+    if defined VERBOSE_FLAG echo Alternative source hook path: "!SOURCE_HOOK_PATH!"
+)
+
+if not exist "!SOURCE_HOOK_PATH!" (
+    echo ERROR: prepare-commit-msg file not found at: !SOURCE_HOOK_PATH!
+    echo Please ensure the prepare-commit-msg file is in the same directory as this script.
+    exit /b 1
+)
+
+if defined VERBOSE_FLAG (
+    echo Copying prepare-commit-msg from: !SOURCE_HOOK_PATH!
+    echo To: !HOOK_PATH!
+)
+
+REM Copy the hook file and show status
+echo Copying prepare-commit-msg hook...
+copy "!SOURCE_HOOK_PATH!" "!HOOK_PATH!" >nul 2>&1
+if errorlevel 1 (
+    echo ERROR: Failed to copy prepare-commit-msg hook to: !HOOK_PATH!
+    echo Please check file permissions and try again.
+    exit /b 1
+) else (
+    echo [OK] Successfully copied prepare-commit-msg hook to: !HOOK_PATH!
+)
+
+REM Set Git's global hooks path if not already set
+for /f "delims=" %%i in ('git config --global core.hooksPath 2^>nul') do set "CURRENT_HOOKS_PATH=%%i"
+if not defined CURRENT_HOOKS_PATH (
+    echo Setting Git's global hooks path...
+    git config --global core.hooksPath "!GLOBAL_HOOKS_DIR!" >nul 2>&1
+    if errorlevel 1 (
+        echo WARNING: Failed to set global hooks path. You may need to set it manually:
+        echo   git config --global core.hooksPath "!GLOBAL_HOOKS_DIR!"
+    ) else (
+        echo [OK] Set Git's global hooks path to: !GLOBAL_HOOKS_DIR!
+    )
+) else (
+    if defined VERBOSE_FLAG echo Git's global hooks path already set to: !CURRENT_HOOKS_PATH!
+)
+
+echo [OK] Successfully installed global hook in: !GLOBAL_HOOKS_DIR!
 exit /b 0
 
 REM Function to find all Git repositories
