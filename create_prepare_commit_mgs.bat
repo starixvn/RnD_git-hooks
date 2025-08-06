@@ -236,13 +236,26 @@ echo [1/3] Searching current directory and subdirectories...
 echo   Scanning: !CURRENT_PATH!
 for /f "delims=" %%i in ('dir "!CURRENT_PATH!" /s /b /ad ^| findstr "\\\.git$"') do (
     if exist "%%i" (
-        echo   [OK] Found .git folder at: %%i
-        if defined GIT_DIRS (
-            set "GIT_DIRS=!GIT_DIRS! %%i"
-        ) else (
-            set "GIT_DIRS=%%i"
+        REM Check if this .git folder is inside a node_modules directory
+        set "GIT_PATH=%%i"
+        set "IS_IN_NODE_MODULES="
+        
+        REM Check if the path contains node_modules
+        echo !GIT_PATH! | findstr /i "\\node_modules\\" >nul 2>&1
+        if not errorlevel 1 (
+            set "IS_IN_NODE_MODULES=1"
+            if defined VERBOSE_FLAG echo   [SKIP] Skipping .git folder in node_modules: !GIT_PATH!
         )
-        set /a "FOUND_COUNT+=1"
+        
+        if not defined IS_IN_NODE_MODULES (
+            echo   [OK] Found .git folder at: %%i
+            if defined GIT_DIRS (
+                set "GIT_DIRS=!GIT_DIRS! %%i"
+            ) else (
+                set "GIT_DIRS=%%i"
+            )
+            set /a "FOUND_COUNT+=1"
+        )
     )
 )
 
